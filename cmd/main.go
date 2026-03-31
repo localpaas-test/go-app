@@ -8,7 +8,16 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 type Post struct {
 	ID   int    `json:"id"`
@@ -25,6 +34,7 @@ func main() {
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/posts", postsHandler)
 	http.HandleFunc("/posts/", postHandler)
+	http.HandleFunc("/websocket", websocketHandler)
 
 	fmt.Println("Server is running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -126,4 +136,22 @@ func handleDeletePost(w http.ResponseWriter, r *http.Request, id int) {
 
 	delete(posts, id)
 	w.WriteHeader(http.StatusOK)
+}
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("error upgrading connection: %v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	for i := 1; i <= 60; i++ {
+		msg := fmt.Sprintf("Message %d", i)
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
+			log.Printf("error writing message: %v\n", err)
+			break
+		}
+		time.Sleep(time.Second)
+	}
 }
