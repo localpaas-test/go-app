@@ -1,0 +1,3 @@
+[submodule "submodules/mod1"]
+	path = submodules/mod1
+	url = https://github.com/localpaas-test/grpc-app.git
